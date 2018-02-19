@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+
+set -e
+
+ROSDISTRO="$(rosversion -d)"
+BASE=$1
+SENSOR=$2
+ARCH="$(uname -m)"
+echo $ARCH
+echo "
+
+ ██████╗ ███╗   ██╗██╗███╗   ██╗███████╗
+██╔═══██╗████╗  ██║██║████╗  ██║██╔════╝
+██║   ██║██╔██╗ ██║██║██╔██╗ ██║█████╗  
+██║   ██║██║╚██╗██║██║██║╚██╗██║██╔══╝  
+╚██████╔╝██║ ╚████║██║██║ ╚████║███████╗
+ ╚═════╝ ╚═╝  ╚═══╝╚═╝╚═╝  ╚═══╝╚══════╝
+                                                                                                                
+"
+if [ "$3" != "test" ]
+    then
+        if [ "$*" == "" ]
+            then
+                echo "No arguments provided"
+                echo
+                echo "Example: $ ./install.sh 2wd"
+                echo
+                exit 1
+                
+        elif [[ "$1" != "2wd" && "$1" != "4wd" && "$1" != "mecanum" && "$1" != "ackermann" ]]
+            then
+                echo "Invalid linorobot base: $1"
+                echo
+                echo "Valid Options:"
+                echo "2wd"
+                echo "4wd"
+                echo "ackermann"
+                echo "mecanum"
+                echo
+                exit 1
+        fi
+
+        echo
+        echo -n "You are installing ROS-$ROSDISTRO Onine for $BASE base. Enter [y] to continue. " 
+        read reply
+        if [[ "$reply" != "y" && "$reply" != "Y" ]]
+            then
+                echo "Wrong input. Exiting now"
+                exit 1
+        fi
+fi
+
+echo
+echo "INSTALLING NOW...."
+echo
+
+# Install linorobot
+cd
+git clone https://github.com/linorobot/lino_install.git
+cd lino_install
+./install mecanum kinect <<< $'y'
+
+sudo apt-get install -y ros-$ROSDISTRO-moveit
+sudo apt-get install -y ros-$ROSDISTRO-robot-state-publisher
+sudo apt-get install -y ros-$ROSDISTRO-joint-state-publisher
+sudo apt-get install -y ros-$ROSDISTRO-trac-ik-kinematics-plugin
+sudo apt-get install -y ros-$ROSDISTRO-ar-track-alvar
+
+# Create Onine ROS workspace
+mkdir -p onine_ws/src
+cd onine_ws/src
+catkin_init_workspace
+
+# Download and build Onine package
+git clone https://github.com/grassjelly/onine.git
+cd ~/onine_ws
+catkin_make
+
+echo
+echo "INSTALLATION DONE!"
+echo
