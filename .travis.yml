@@ -23,7 +23,7 @@ script:
   - cd
   - git clone https://github.com/grassjelly/onine_install
   - cd onine_install
-  - ./install mecanum test
+  - ./install <<< $'y'
 
 notifications:
   email:

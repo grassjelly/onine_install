@@ -3,8 +3,6 @@
 set -e
 
 ROSDISTRO="$(rosversion -d)"
-BASE=$1
-SENSOR=$2
 ARCH="$(uname -m)"
 echo $ARCH
 echo "
@@ -15,50 +13,38 @@ echo "
 ██║   ██║██║╚██╗██║██║██║╚██╗██║██╔══╝  
 ╚██████╔╝██║ ╚████║██║██║ ╚████║███████╗
  ╚═════╝ ╚═╝  ╚═══╝╚═╝╚═╝  ╚═══╝╚══════╝
-                                                                                                                
+   
+          http://linorobot.org                                                                          
 "
-if [ "$2" != "test" ]
-    then
-        if [ "$*" == "" ]
-            then
-                echo "No arguments provided"
-                echo
-                echo "Example: $ ./install.sh 2wd"
-                echo
-                exit 1
-                
-        elif [[ "$1" != "2wd" && "$1" != "4wd" && "$1" != "mecanum" && "$1" != "ackermann" ]]
-            then
-                echo "Invalid linorobot base: $1"
-                echo
-                echo "Valid Options:"
-                echo "2wd"
-                echo "4wd"
-                echo "ackermann"
-                echo "mecanum"
-                echo
-                exit 1
-        fi
 
-        echo
-        echo -n "You are installing ROS-$ROSDISTRO Onine for $BASE base. Enter [y] to continue. " 
-        read reply
-        if [[ "$reply" != "y" && "$reply" != "Y" ]]
-            then
-                echo "Wrong input. Exiting now"
-                exit 1
-        fi
+echo -n "You are installing ROS-$ROSDISTRO Onine. Enter [y] to continue. " 
+read reply
+if [[ "$reply" != "y" && "$reply" != "Y" ]]
+    then
+        echo "Wrong input. Exiting now"
+        exit 1
 fi
 
 echo
 echo "INSTALLING NOW...."
 echo
 
-# Install linorobot
-cd
-git clone https://github.com/linorobot/lino_install.git
-cd lino_install
-./install mecanum kinect <<< $'y'
+sudo apt-get update
+sudo apt-get install -y avahi-daemon
+sudo apt-get install -y openssh-server
+sudo apt-get install -y python-setuptools 
+sudo apt-get install -y python-dev 
+sudo apt-get install -y build-essential
+sudo apt-get install -y python-gudev
+
+sudo easy_install pip
+sudo pip install -U platformio
+sudo rm -rf ~/.platformio/
+
+source /opt/ros/$ROSDISTRO/setup.bash
+
+sudo apt-get install -y ros-$ROSDISTRO-freenect-launch
+sudo apt-get install -y ros-$ROSDISTRO-pointcloud-to-laserscan
 
 sudo apt-get install -y ros-$ROSDISTRO-moveit
 sudo apt-get install -y ros-$ROSDISTRO-robot-state-publisher
@@ -66,7 +52,7 @@ sudo apt-get install -y ros-$ROSDISTRO-joint-state-publisher
 sudo apt-get install -y ros-$ROSDISTRO-trac-ik-kinematics-plugin
 sudo apt-get install -y ros-$ROSDISTRO-ar-track-alvar
 
-# Create Onine ROS workspace
+cd
 mkdir -p onine_ws/src
 cd onine_ws/src
 catkin_init_workspace
@@ -75,6 +61,17 @@ catkin_init_workspace
 git clone https://github.com/grassjelly/onine.git
 cd ~/onine_ws
 catkin_make
+
+TRAVIS_BRANCH="echo $TRAVIS_BRANCH"
+if [ "$TRAVIS_BRANCH" = "devel" ]; then git checkout devel; fi
+
+cd ~/onine_ws/src/onine/firmware/arm_child
+export PLATFORMIO_CI_SRC=$PWD/src/firmware.ino
+platformio ci --project-conf=./platformio.ini --lib="./lib/braccio"
+
+cd ~/onine_ws/src/onine/firmware/arm_parent
+export PLATFORMIO_CI_SRC=$PWD/src/firmware.ino
+platformio ci --project-conf=./platformio.ini --lib="./lib/TeensyStep" --lib="./lib/ros_lib"
 
 echo
 echo "INSTALLATION DONE!"
