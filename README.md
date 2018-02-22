@@ -1,4 +1,4 @@
-# onine_install [![Build Status](https://travis-ci.org/grassjelly/onine_install.svg?branch=master)](https://travis-ci.org/grassjelly/onine_install)
+# onine_install 
 
 ## Installation
 This will install all required packages to build Onine robot including:
